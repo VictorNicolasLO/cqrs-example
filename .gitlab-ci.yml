@@ -1,0 +1,30 @@
+image: google/cloud-sdk:latest
+stages:
+  - deploy
+
+variables:
+  CONTAINER_IMAGE_DEV: gcr.io/$GCLOUD_PROJECT_ID/$APP/development
+  CONTAINER_IMAGE_PROD: gcr.io/$GCLOUD_PROJECT_ID/$APP/prod
+
+before_script:
+  - echo something
+  - touch $CI_PROJECT_DIR/sa.json
+  - echo $DEPLOY_KEY > $CI_PROJECT_DIR/sa.json
+  - export GOOGLE_APPLICATION_CREDENTIALS=$CI_PROJECT_DIR/sa.json
+  - gcloud auth activate-service-account --key-file=sa.json
+  - gcloud config set project $GCLOUD_PROJECT_ID
+  - gcloud config set compute/zone $CLOUDSDK_ZONE
+
+deploy-prod:
+  stage: deploy
+  only:
+    - master
+  script:
+    - gcloud builds submit --config cloudbuild.yml --substitutions _IMAGE=$CONTAINER_IMAGE_PROD,_CI_BUILD_ID=$CI_BUILD_ID,_CLOUDSDK_COMPUTE_ZONE=$CLOUDSDK_ZONE,_CLOUDSDK_CONTAINER_CLUSTER=$CONTAINER_CLUSTER,_KUBECTL_ENV=production,_APP=$APP,_CONTAINER_IMAGE=$CONTAINER_IMAGE_PROD,_CI_BUILD_ID=$CI_BUILD_ID --timeout="1h" .
+
+deploy-dev:
+  stage: deploy
+  only:
+    - development
+  script:
+    - gcloud builds submit --config cloudbuild.yml --substitutions _IMAGE=$CONTAINER_IMAGE_DEV,_CI_BUILD_ID=$CI_BUILD_ID,_CLOUDSDK_COMPUTE_ZONE=$CLOUDSDK_ZONE,_CLOUDSDK_CONTAINER_CLUSTER=$CONTAINER_CLUSTER,_KUBECTL_ENV=development,_APP=$APP,_CONTAINER_IMAGE=$CONTAINER_IMAGE_DEV,_CI_BUILD_ID=$CI_BUILD_ID --timeout="1h" .

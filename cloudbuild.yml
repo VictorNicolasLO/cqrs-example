@@ -1,0 +1,27 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "${_IMAGE}:latest",
+        "-t",
+        "${_IMAGE}:${_CI_BUILD_ID}",
+        ".",
+      ]
+  - name: "gcr.io/cloud-builders/kubectl"
+    args:
+      [
+        "set",
+        "image",
+        "deployment/$_APP-deployment",
+        "$_APP=$_CONTAINER_IMAGE:$_CI_BUILD_ID",
+      ]
+    env:
+      - "CLOUDSDK_COMPUTE_ZONE=${_CLOUDSDK_COMPUTE_ZONE}"
+      - "CLOUDSDK_CONTAINER_CLUSTER=${_CLOUDSDK_CONTAINER_CLUSTER}"
+      - "KUBECTL_ENV=${_KUBECTL_ENV}"
+      - "APP=${$_APP}"
+      - "CONTAINER_IMAGE=${_CONTAINER_IMAGE}"
+      - "CI_BUILD_ID=${_CI_BUILD_ID}"
+images: ["${_IMAGE}:latest", "${_IMAGE}:${_CI_BUILD_ID}"]
